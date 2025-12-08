@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>С Днем рождения!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@200;300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background-color: #050505; font-family: 'Montserrat', sans-serif; color: white; }
+
+        #app { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+
+        #final-image {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            z-index: 1;
+            filter: brightness(0.5);
+        }
+
+        #fog-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 30; cursor: pointer; }
+
+        #ui-layer {
+            position: absolute; z-index: 40; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.85); transition: opacity 0.5s;
+        }
+
+        .start-btn {
+            padding: 15px 35px; font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 1.1rem;
+            color: #ff69b4; background: transparent; border: 1px solid #ff69b4; border-radius: 50px;
+            cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 3px;
+        }
+        .start-btn:hover { background: #ff69b4; color: #fff; box-shadow: 0 0 20px rgba(255, 105, 180, 0.6); }
+
+        #instruction {
+            position: absolute; bottom: 20%; width: 100%; text-align: center;
+            font-size: 1rem; color: rgba(255,255,255,0.8); z-index: 35;
+            opacity: 0; pointer-events: none; transition: opacity 1s; letter-spacing: 1px;
+        }
+
+        #wind-indicator {
+            position: absolute; bottom: 15%; width: 150px; height: 2px;
+            background: linear-gradient(90deg, transparent, #ff69b4, transparent);
+            opacity: 0; transform: scaleX(0); transition: transform 0.1s;
+            z-index: 35;
+        }
+
+        #lily-decor {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 20; pointer-events: none;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5));
+        }
+
+        .flower-part {
+            opacity: 0;
+            transform-origin: bottom center;
+            transform: scale(0.5) translateY(100px) rotate(10deg);
+            transition: opacity 1.5s ease-out, transform 2s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        #final-message-container {
+            position: absolute; top: 15%; left: 0; width: 100%; z-index: 25;
+            pointer-events: none; text-align: center;
+        }
+
+        .text-content {
+            opacity: 0; transform: translateY(30px);
+            transition: opacity 2s ease 2.5s, transform 2s ease 2.5s;
+        }
+
+        .text-content h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 200;
+            font-size: 3.5rem;
+            color: #fff;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            text-shadow: 0 0 20px rgba(255, 105, 180, 0.7), 0 0 40px rgba(255, 105, 180, 0.3);
+        }
+        
+        .text-content p {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 300;
+            font-size: 1rem;
+            color: #eee;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+
+        .show-final .flower-part { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); }
+        .show-final .text-content { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 768px) {
+            #final-message-container { top: 12%; }
+            .text-content h1 { font-size: 2.2rem; letter-spacing: 4px; }
+            .text-content p { font-size: 0.8rem; letter-spacing: 2px; }
+            #lily-decor { width: 100%; height: 100%; }
+
+            .group-left { transform: translate(180px, 630px) scale(0.85); }
+            .group-right { transform: translate(620px, 630px) scale(0.85); }
+            .group-center { transform: translate(400px, 630px) scale(0.85); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <img id="final-image" src="cat.jpg" alt="Final Image">
+    <canvas id="fog-canvas"></canvas>
+
+    <div id="ui-layer">
+        <button id="start-btn" class="start-btn">Нажать</button>
+    </div>
+
+    <div id="instruction">Подуй на экран, чтобы сдуть цветную пыль</div>
+    <div id="wind-indicator"></div>
+
+    <div id="final-message-container">
+        <div class="text-content">
+            <h1>Бро, с Днём Рождения!</h1>
+            <p>Ты прекрасна, как эти цветы</p>
+        </div>
+    </div>
+
+    <svg id="lily-decor" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+        <defs>
+            <linearGradient id="petalGrad" x1="0%" y1="100%" x2="50%" y2="0%">
+                <stop offset="0%" style="stop-color:#f0f0f0;stop-opacity:1" />
+                <stop offset="60%" style="stop-color:#ffffff;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#fffaf0;stop-opacity:1" />
+            </linearGradient>
+            <radialGradient id="centerGrad" cx="50%" cy="100%" r="80%">
+                <stop offset="0%" style="stop-color:#98fb98;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+            </radialGradient>
+            <linearGradient id="leafGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+                <stop offset="0%" style="stop-color:#003300;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#228b22;stop-opacity:1" />
+            </linearGradient>
+            <linearGradient id="stemGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" style="stop-color:#004d00;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#3cb371;stop-opacity:1" />
+            </linearGradient>
+
+            <symbol id="lily-petal-triangle" viewBox="0 0 100 200">
+                 <path d="M50,200 Q20,130 5,60 L50,0 L95,60 Q80,130 50,200 Z" fill="url(#petalGrad)" />
+                 <path d="M50,200 L50,40" stroke="#ccffcc" stroke-width="1.5" opacity="0.6" /> 
+            </symbol>
+
+            <symbol id="lily-flower-tri" viewBox="0 0 300 300">
+                <use href="#lily-petal-triangle" width="100" height="200" x="100" y="50" transform="rotate(0, 150, 150) translate(0, -10)" opacity="0.95"/>
+                <use href="#lily-petal-triangle" width="100" height="200" x="100" y="50" transform="rotate(120, 150, 150) translate(0, -10)" opacity="0.95"/>
+                <use href="#lily-petal-triangle" width="100" height="200" x="100" y="50" transform="rotate(240, 150, 150) translate(0, -10)" opacity="0.95"/>
+                <use href="#lily-petal-triangle" width="100" height="200" x="100" y="50" transform="rotate(60, 150, 150)" />
+                <use href="#lily-petal-triangle" width="100" height="200" x="100" y="50" transform="rotate(180, 150, 150)" />
+                <use href="#lily-petal-triangle" width="100" height="200" x="100" y="50" transform="rotate(300, 150, 150)" />
+                <g fill="none" stroke="#d4af37" stroke-width="2">
+                    <line x1="150" y1="150" x2="150" y2="80" />
+                    <line x1="150" y1="150" x2="120" y2="100" />
+                    <line x1="150" y1="150" x2="180" y2="100" />
+                    <line x1="150" y1="150" x2="130" y2="190" />
+                    <line x1="150" y1="150" x2="170" y2="190" />
+                    <ellipse cx="150" cy="80" rx="3" ry="5" fill="#8b4500" stroke="none"/>
+                    <ellipse cx="120" cy="100" rx="3" ry="5" fill="#8b4500" stroke="none" transform="rotate(-30, 120, 100)"/>
+                    <ellipse cx="180" cy="100" rx="3" ry="5" fill="#8b4500" stroke="none" transform="rotate(30, 180, 100)"/>
+                </g>
+                <circle cx="150" cy="150" r="25" fill="url(#centerGrad)" opacity="0.7" />
+            </symbol>
+
+            <symbol id="lily-leaf-sharp" viewBox="0 0 100 200">
+                <path d="M50,200 Q20,100 50,0 Q80,100 50,200 Z" fill="url(#leafGrad)" />
+            </symbol>
+        </defs>
+
+        <g class="group-left" transform="translate(0, 600)">
+            <g class="flower-part" style="transition-delay: 0.1s">
+                <path d="M0,0 Q60,-80 140,-160" stroke="url(#stemGrad)" stroke-width="6" fill="none" />
+                <path d="M-10,0 Q10,-60 30,-110" stroke="url(#stemGrad)" stroke-width="5" fill="none" />
+                <path d="M10,0 Q80,-140 180,-270" stroke="url(#stemGrad)" stroke-width="4" fill="none" />
+                <use href="#lily-leaf-sharp" x="10" y="-120" width="60" height="150" transform="rotate(-30)" />
+                <use href="#lily-leaf-sharp" x="40" y="-80" width="45" height="110" transform="rotate(10)" />
+            </g>
+            <g class="flower-part" style="transition-delay: 0.5s">
+                <use href="#lily-flower-tri" x="35" y="-265" width="210" height="210" transform="rotate(20, 140, -160)" />
+            </g>
+            <g class="flower-part" style="transition-delay: 0.8s">
+                <use href="#lily-flower-tri" x="-45" y="-185" width="150" height="150" transform="rotate(-15, 30, -110)" />
+            </g>
+            <g class="flower-part" style="transition-delay: 1.1s">
+                <use href="#lily-flower-tri" x="110" y="-340" width="140" height="140" transform="rotate(35, 180, -270)" />
+            </g>
+        </g>
+
+        <g class="group-right" transform="translate(800, 600)">
+            <g class="flower-part" style="transition-delay: 0.2s">
+                <path d="M0,0 Q-60,-80 -140,-160" stroke="url(#stemGrad)" stroke-width="6" fill="none" />
+                <path d="M10,0 Q-10,-60 -30,-110" stroke="url(#stemGrad)" stroke-width="5" fill="none" />
+                <path d="M-10,0 Q-80,-140 -180,-290" stroke="url(#stemGrad)" stroke-width="4" fill="none" />
+                <path d="M-20,0 Q-110,-190 -100,-360" stroke="url(#stemGrad)" stroke-width="3" fill="none" />
+                <use href="#lily-leaf-sharp" x="-70" y="-120" width="60" height="150" transform="rotate(30)" />
+                <use href="#lily-leaf-sharp" x="-85" y="-80" width="45" height="110" transform="rotate(-10)" />
+            </g>
+            <g class="flower-part" style="transition-delay: 0.6s">
+                <use href="#lily-flower-tri" x="-245" y="-265" width="210" height="210" transform="rotate(-20, -140, -160)" />
+            </g>
+            <g class="flower-part" style="transition-delay: 0.9s">
+                <use href="#lily-flower-tri" x="-105" y="-185" width="150" height="150" transform="rotate(15, -30, -110)" />
+            </g>
+            <g class="flower-part" style="transition-delay: 1.2s">
+                <use href="#lily-flower-tri" x="-250" y="-360" width="140" height="140" transform="rotate(-35, -180, -290)" />
+            </g>
+             <g class="flower-part" style="transition-delay: 1.4s">
+                <use href="#lily-flower-tri" x="-155" y="-415" width="110" height="110" transform="rotate(-10, -100, -360)" />
+            </g>
+        </g>
+
+        <g class="group-center" transform="translate(400, 600)">
+             <g class="flower-part" style="transition-delay: 1.5s">
+                <path d="M0,0 L0,-90" stroke="url(#stemGrad)" stroke-width="4" />
+                <use href="#lily-flower-tri" x="-75" y="-165" width="150" height="150" transform="rotate(0, 0, -90)" />
+             </g>
+        </g>
+    </svg>
+</div>
+
+<script>
+    const CONFIG = {
+        audioThreshold: 15,
+        clearingSpeed: 0.8,
+        fogDensity: 0.95,
+        particleCount: 150
+    };
+
+    let state = {
+        isStarted: false,
+        isFinished: false,
+        fogOpacity: 1,
+        audioContext: null,
+        analyser: null,
+        dataArray: null,
+        microphone: null
+    };
+
+    const canvas = document.getElementById('fog-canvas');
+    const ctx = canvas.getContext('2d');
+    const uiLayer = document.getElementById('ui-layer');
+    const startBtn = document.getElementById('start-btn');
+    const instruction = document.getElementById('instruction');
+    const finalImage = document.getElementById('final-image');
+    const windIndicator = document.getElementById('wind-indicator');
+
+    let particles = [];
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        initParticles();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    class Particle {
+        constructor() { this.reset(); }
+        reset() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.size = Math.random() * 3 + 1;
+            this.speedX = (Math.random() - 0.5) * 0.5;
+            this.speedY = (Math.random() - 0.5) * 0.5;
+            this.alpha = Math.random() * 0.8 + 0.2;
+            
+            const colors = [
+                `hsla(${Math.random() * 60 + 330}, 100%, 70%, ${this.alpha})`, 
+                `hsla(45, 100%, 70%, ${this.alpha})`, 
+                `hsla(0, 0%, 100%, ${this.alpha})` 
+            ];
+            this.color = colors[Math.floor(Math.random() * colors.length)];
+        }
+        update(blowIntensity) {
+            if (blowIntensity > 0) {
+                const dirX = (this.x - canvas.width / 2) / (canvas.width / 2);
+                const dirY = (this.y - canvas.height / 2) / (canvas.height / 2);
+                this.x += this.speedX + (dirX * blowIntensity * 12);
+                this.y += this.speedY + (dirY * blowIntensity * 12);
+            } else {
+                this.x += this.speedX;
+                this.y += this.speedY;
+            }
+            if (!state.isFinished && (this.x < -50 || this.x > canvas.width + 50 || this.y < -50 || this.y > canvas.height + 50)) {
+                this.reset();
+            }
+        }
+        draw() {
+            const colorParts = this.color.match(/hsla\((\d+\.?\d*),\s*(\d+%?),\s*(\d+%?),\s*(\d*\.?\d+)\)/);
+            if (colorParts) {
+                const [_, h, s, l, a] = colorParts;
+                const currentAlpha = parseFloat(a) * state.fogOpacity;
+                ctx.fillStyle = `hsla(${h}, ${s}, ${l}, ${currentAlpha})`;
+            } else {
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = state.fogOpacity;
+            }
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    function initParticles() {
+        particles = [];
+        for (let i = 0; i < CONFIG.particleCount; i++) particles.push(new Particle());
+    }
+
+    async function initAudio() {
+        try {
+            state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            state.microphone = state.audioContext.createMediaStreamSource(stream);
+            state.analyser = state.audioContext.createAnalyser();
+            state.analyser.fftSize = 256;
+            state.microphone.connect(state.analyser);
+            state.dataArray = new Uint8Array(state.analyser.frequencyBinCount);
+            startGame();
+        } catch (err) {
+            console.error("Mic Error:", err);
+            canvas.addEventListener('click', () => manualProgress(0.15));
+            instruction.innerText = "Кликай по экрану, чтобы развеять магию (Микрофон недоступен)";
+            startGame();
+        }
+    }
+
+    function getAudioLevel() {
+        if (!state.analyser) return 0;
+        state.analyser.getByteFrequencyData(state.dataArray);
+        let sum = 0;
+        for (let i = 0; i < state.dataArray.length; i++) sum += state.dataArray[i];
+        return sum / state.dataArray.length;
+    }
+
+    function startGame() {
+        state.isStarted = true;
+        uiLayer.style.display = 'none';
+        instruction.style.opacity = 1;
+        windIndicator.style.opacity = 1;
+        loop();
+    }
+
+    function manualProgress(amount) {
+         if (state.isFinished) return;
+         state.fogOpacity -= amount;
+         if (state.fogOpacity <= 0.01) finishGame();
+    }
+
+    function loop() {
+        if (state.isFinished) return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const level = getAudioLevel();
+        let blowIntensity = 0;
+        if (level > CONFIG.audioThreshold) {
+            blowIntensity = Math.min((level - CONFIG.audioThreshold) / 50, 1);
+            state.fogOpacity -= (blowIntensity * CONFIG.clearingSpeed * 0.01);
+        }
+        windIndicator.style.transform = `scaleX(${level / 50})`;
+
+        if (state.fogOpacity > 0) {
+            ctx.fillStyle = `rgba(0, 0, 0, ${state.fogOpacity * 0.95})`; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        particles.forEach(p => { p.update(blowIntensity); p.draw(); });
+
+        if (state.fogOpacity <= 0.01) { finishGame(); } 
+        else { requestAnimationFrame(loop); }
+    }
+
+    function finishGame() {
+        state.isFinished = true;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.style.display = 'none';
+        instruction.style.opacity = 0;
+        windIndicator.style.opacity = 0;
+        
+        finalImage.style.opacity = 1;
+
+        setTimeout(() => {
+            document.getElementById('app').classList.add('show-final');
+        }, 500);
+    }
+
+    resizeCanvas();
+    startBtn.addEventListener('click', initAudio);
+
+</script>
+</body>
+</html>
